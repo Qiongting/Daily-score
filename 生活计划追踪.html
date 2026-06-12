@@ -1,0 +1,701 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>每日积分打卡</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', sans-serif;
+            background: #f5f7fa;
+            padding: 16px;
+            max-width: 480px;
+            margin: 0 auto;
+        }
+        .header {
+            text-align: center;
+            padding: 20px 0;
+        }
+        .header h1 {
+            font-size: 22px;
+            color: #2c3e50;
+            margin-bottom: 8px;
+        }
+        .date-display {
+            font-size: 14px;
+            color: #7f8c8d;
+        }
+        .score-board {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            margin: 16px 0;
+        }
+        .score-card {
+            background: white;
+            border-radius: 12px;
+            padding: 14px;
+            text-align: center;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+        }
+        .score-card .label {
+            font-size: 12px;
+            color: #95a5a6;
+            margin-bottom: 4px;
+        }
+        .score-card .value {
+            font-size: 24px;
+            font-weight: 700;
+            color: #e74c3c;
+        }
+        .score-card.total .value {
+            color: #27ae60;
+        }
+        .score-card.penalty-card .value {
+            color: #e74c3c;
+        }
+        .section {
+            background: white;
+            border-radius: 14px;
+            padding: 16px;
+            margin-bottom: 12px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+        }
+        .section-title {
+            font-size: 16px;
+            font-weight: 600;
+            color: #2c3e50;
+            margin-bottom: 12px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+        .section-title .icon {
+            width: 24px;
+            height: 24px;
+            border-radius: 6px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 14px;
+        }
+        .daily .icon { background: #e8f5e9; color: #27ae60; }
+        .weekly .icon { background: #fff3e0; color: #f39c12; }
+        .penalty .icon { background: #ffebee; color: #e74c3c; }
+        .offset .icon { background: #e3f2fd; color: #2196f3; }
+
+        .item {
+            display: flex;
+            align-items: center;
+            padding: 10px 0;
+            border-bottom: 1px solid #f0f0f0;
+            cursor: pointer;
+            user-select: none;
+            -webkit-tap-highlight-color: transparent;
+        }
+        .item:last-child { border-bottom: none; }
+        .item:active { background: #fafafa; }
+
+        .checkbox {
+            width: 22px;
+            height: 22px;
+            border: 2px solid #bdc3c7;
+            border-radius: 6px;
+            margin-right: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s;
+            flex-shrink: 0;
+        }
+        .item.checked .checkbox {
+            background: #27ae60;
+            border-color: #27ae60;
+        }
+        .item.penalty-item.checked .checkbox {
+            background: #e74c3c;
+            border-color: #e74c3c;
+        }
+        .checkbox svg {
+            width: 14px;
+            height: 14px;
+            fill: white;
+            opacity: 0;
+            transition: opacity 0.2s;
+        }
+        .item.checked .checkbox svg {
+            opacity: 1;
+        }
+
+        .item-text {
+            flex: 1;
+            font-size: 14px;
+            color: #2c3e50;
+            line-height: 1.4;
+        }
+        .item.checked .item-text {
+            text-decoration: line-through;
+            color: #95a5a6;
+        }
+
+        .item-score {
+            font-size: 14px;
+            font-weight: 600;
+            margin-left: 8px;
+            flex-shrink: 0;
+        }
+        .score-positive { color: #27ae60; }
+        .score-negative { color: #e74c3c; }
+
+        .study-hours {
+            display: flex;
+            gap: 8px;
+            margin-left: auto;
+        }
+        .hour-btn {
+            padding: 4px 10px;
+            border-radius: 16px;
+            border: 1px solid #ddd;
+            background: white;
+            font-size: 12px;
+            color: #666;
+            cursor: pointer;
+        }
+        .hour-btn.active {
+            background: #27ae60;
+            color: white;
+            border-color: #27ae60;
+        }
+
+        .btn-group {
+            display: flex;
+            gap: 10px;
+            margin-top: 16px;
+        }
+        .btn {
+            flex: 1;
+            padding: 14px;
+            border-radius: 12px;
+            border: none;
+            font-size: 15px;
+            font-weight: 600;
+            cursor: pointer;
+            text-align: center;
+        }
+        .btn-primary {
+            background: #27ae60;
+            color: white;
+        }
+        .btn-secondary {
+            background: #ecf0f1;
+            color: #2c3e50;
+        }
+
+        .penalty-status {
+            background: #ffebee;
+            border-radius: 12px;
+            padding: 14px;
+            margin-bottom: 12px;
+            font-size: 13px;
+        }
+        .penalty-status .title {
+            font-weight: 600;
+            color: #e74c3c;
+            margin-bottom: 6px;
+        }
+        .penalty-status .detail {
+            color: #666;
+            line-height: 1.6;
+        }
+        .penalty-status .warning {
+            color: #e74c3c;
+            font-weight: 600;
+        }
+
+        .phase-info {
+            background: #fff8e1;
+            border-radius: 12px;
+            padding: 14px;
+            margin-bottom: 12px;
+            font-size: 13px;
+            color: #666;
+        }
+        .phase-info strong {
+            color: #f39c12;
+        }
+
+        @keyframes pop {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.1); }
+            100% { transform: scale(1); }
+        }
+        .item.checked .checkbox {
+            animation: pop 0.2s ease;
+        }
+    </style>
+<base target="_blank">
+</head>
+<body>
+    <div class="header">
+        <h1>🎯 每日积分打卡</h1>
+        <div class="date-display" id="dateDisplay"></div>
+    </div>
+
+    <div class="phase-info">
+        <strong>📍 第一阶段</strong>：投稿岩土工程学报论文（8周）<br>
+        按计划完成投稿任务 +500分
+    </div>
+
+    <div class="score-board">
+        <div class="score-card">
+            <div class="label">今日得分</div>
+            <div class="value" id="todayScore">0</div>
+        </div>
+        <div class="score-card">
+            <div class="label">本周累计</div>
+            <div class="value" id="weekScore">0</div>
+        </div>
+        <div class="score-card">
+            <div class="label">本月累计</div>
+            <div class="value" id="monthScore">0</div>
+        </div>
+        <div class="score-card total">
+            <div class="label">总累计积分</div>
+            <div class="value" id="totalScore">0</div>
+        </div>
+    </div>
+
+    <div class="penalty-status" id="penaltyStatus">
+        <div class="title">⚠️ 惩罚分数（独立计算）</div>
+        <div class="detail">
+            累计惩罚分：<span id="penaltyScore" class="warning">0</span> 分<br>
+            满30分 → 打扫全屋一次<br>
+            满50分 → 连续三天独立做饭+刷碗
+        </div>
+    </div>
+
+    <div class="section daily">
+        <div class="section-title">
+            <span class="icon">✅</span>
+            每日加分项
+        </div>
+        <div class="item" data-score="5" data-type="daily">
+            <div class="checkbox"><svg viewBox="0 0 24 24"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg></div>
+            <span class="item-text">早上9:00前起床，10:00到办公室</span>
+            <span class="item-score score-positive">+5</span>
+        </div>
+        <div class="item" data-score="5" data-type="daily">
+            <div class="checkbox"><svg viewBox="0 0 24 24"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg></div>
+            <span class="item-text">晚上12:30前睡觉</span>
+            <span class="item-score score-positive">+5</span>
+        </div>
+        <div class="item" data-score="5" data-type="daily">
+            <div class="checkbox"><svg viewBox="0 0 24 24"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg></div>
+            <span class="item-text">三餐按时吃（晚餐<9:00pm）</span>
+            <span class="item-score score-positive">+5</span>
+        </div>
+        <div class="item" id="studyItem" data-score="0" data-type="daily">
+            <div class="checkbox"><svg viewBox="0 0 24 24"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg></div>
+            <span class="item-text">每日学习时长</span>
+            <div class="study-hours">
+                <button class="hour-btn" data-hours="4" data-score="5">4h +5</button>
+                <button class="hour-btn" data-hours="6" data-score="10">6h +10</button>
+                <button class="hour-btn" data-hours="8" data-score="15">8h +15</button>
+            </div>
+        </div>
+        <div class="item" data-score="5" data-type="daily">
+            <div class="checkbox"><svg viewBox="0 0 24 24"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg></div>
+            <span class="item-text">每日记录、复盘</span>
+            <span class="item-score score-positive">+5</span>
+        </div>
+        <div class="item" data-score="5" data-type="daily">
+            <div class="checkbox"><svg viewBox="0 0 24 24"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg></div>
+            <span class="item-text">每日运动15-20分钟</span>
+            <span class="item-score score-positive">+5</span>
+        </div>
+        <div class="item" data-score="5" data-type="daily">
+            <div class="checkbox"><svg viewBox="0 0 24 24"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg></div>
+            <span class="item-text">睡前泡脚、护肤、刷牙后不吃</span>
+            <span class="item-score score-positive">+5</span>
+        </div>
+    </div>
+
+    <div class="section weekly">
+        <div class="section-title">
+            <span class="icon">📅</span>
+            每周加分项
+        </div>
+        <div class="item" data-score="10" data-type="weekly">
+            <div class="checkbox"><svg viewBox="0 0 24 24"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg></div>
+            <span class="item-text">论文有进展（小论文一章/大论文2小节）</span>
+            <span class="item-score score-positive">+10</span>
+        </div>
+        <div class="item" data-score="10" data-type="weekly">
+            <div class="checkbox"><svg viewBox="0 0 24 24"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg></div>
+            <span class="item-text">数模、机器学习有进展（跑通/跑顺）</span>
+            <span class="item-score score-positive">+10</span>
+        </div>
+        <div class="item" data-score="10" data-type="weekly">
+            <div class="checkbox"><svg viewBox="0 0 24 24"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg></div>
+            <span class="item-text">连续5天学习</span>
+            <span class="item-score score-positive">+10</span>
+        </div>
+        <div class="item" data-score="10" data-type="weekly">
+            <div class="checkbox"><svg viewBox="0 0 24 24"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg></div>
+            <span class="item-text">连续5天早睡早起</span>
+            <span class="item-score score-positive">+10</span>
+        </div>
+    </div>
+
+    <div class="section penalty">
+        <div class="section-title">
+            <span class="icon">⚠️</span>
+            惩罚扣分项（独立累计）
+        </div>
+        <div class="item penalty-item" data-score="-10" data-type="penalty">
+            <div class="checkbox"><svg viewBox="0 0 24 24"><path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg></div>
+            <span class="item-text">熬夜到1:30后</span>
+            <span class="item-score score-negative">-10</span>
+        </div>
+        <div class="item penalty-item" data-score="-10" data-type="penalty">
+            <div class="checkbox"><svg viewBox="0 0 24 24"><path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg></div>
+            <span class="item-text">工作日两天未学习</span>
+            <span class="item-score score-negative">-10</span>
+        </div>
+        <div class="item penalty-item" data-score="-10" data-type="penalty">
+            <div class="checkbox"><svg viewBox="0 0 24 24"><path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg></div>
+            <span class="item-text">一天刷手机>5h / 玩游戏>3h</span>
+            <span class="item-score score-negative">-10</span>
+        </div>
+        <div class="item penalty-item" data-score="-10" data-type="penalty">
+            <div class="checkbox"><svg viewBox="0 0 24 24"><path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg></div>
+            <span class="item-text">连续两天运动未达标</span>
+            <span class="item-score score-negative">-10</span>
+        </div>
+        <div class="item penalty-item" data-score="-30" data-type="penalty">
+            <div class="checkbox"><svg viewBox="0 0 24 24"><path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg></div>
+            <span class="item-text">吵架后摔东西、打人</span>
+            <span class="item-score score-negative">-30</span>
+        </div>
+        <div class="item penalty-item" data-score="-30" data-type="penalty">
+            <div class="checkbox"><svg viewBox="0 0 24 24"><path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg></div>
+            <span class="item-text">吵架后不说话>2min</span>
+            <span class="item-score score-negative">-30</span>
+        </div>
+        <div class="item penalty-item" data-score="-10" data-type="penalty">
+            <div class="checkbox"><svg viewBox="0 0 24 24"><path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg></div>
+            <span class="item-text">3次以上对方不耐烦/强调不注意</span>
+            <span class="item-score score-negative">-10</span>
+        </div>
+    </div>
+
+    <div class="section offset">
+        <div class="section-title">
+            <span class="icon">🔄</span>
+            惩罚抵消项（用于消除惩罚分）
+        </div>
+        <div class="item" data-score="30" data-type="offset">
+            <div class="checkbox"><svg viewBox="0 0 24 24"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg></div>
+            <span class="item-text">打扫全屋一次</span>
+            <span class="item-score score-positive">+30</span>
+        </div>
+        <div class="item" data-score="50" data-type="offset">
+            <div class="checkbox"><svg viewBox="0 0 24 24"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg></div>
+            <span class="item-text">连续三天独立做饭+刷碗</span>
+            <span class="item-score score-positive">+50</span>
+        </div>
+    </div>
+
+    <div class="btn-group">
+        <button class="btn btn-primary" onclick="copyReport()">📋 复制今日汇报</button>
+        <button class="btn btn-secondary" onclick="resetDay()">🔄 重置今日</button>
+    </div>
+
+    <div style="height: 40px;"></div>
+
+<script>
+let data = JSON.parse(localStorage.getItem('scoreData')) || {
+    records: {},
+    weekScores: {},
+    monthScores: {},
+    totalScore: 0,
+    penaltyScore: 0,
+    currentPhase: 1,
+    phaseStartDate: new Date().toISOString().split('T')[0]
+};
+
+const today = new Date().toISOString().split('T')[0];
+const currentWeek = getWeekKey();
+const currentMonth = getMonthKey();
+
+if (!data.records[today]) {
+    data.records[today] = { items: {}, studyHours: 0, studyScore: 0 };
+}
+
+function getWeekKey() {
+    const d = new Date();
+    const day = d.getDay() || 7;
+    const monday = new Date(d);
+    monday.setDate(d.getDate() - day + 1);
+    return monday.toISOString().split('T')[0];
+}
+
+function getMonthKey() {
+    const d = new Date();
+    return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0');
+}
+
+function updateDate() {
+    const d = new Date();
+    const weekdays = ['日','一','二','三','四','五','六'];
+    document.getElementById('dateDisplay').textContent = 
+        d.getFullYear() + '年' + (d.getMonth()+1) + '月' + d.getDate() + '日 星期' + weekdays[d.getDay()];
+}
+
+// 点击打卡项
+document.querySelectorAll('.item').forEach(item => {
+    if (item.id === 'studyItem') return;
+
+    item.addEventListener('click', function(e) {
+        if (e.target.classList.contains('hour-btn')) return;
+
+        const isChecked = this.classList.contains('checked');
+        const score = parseInt(this.dataset.score);
+        const type = this.dataset.type;
+        const itemText = this.querySelector('.item-text').textContent;
+
+        if (isChecked) {
+            this.classList.remove('checked');
+            delete data.records[today].items[itemText];
+        } else {
+            this.classList.add('checked');
+            data.records[today].items[itemText] = score;
+        }
+
+        saveData();
+        updateScores();
+    });
+});
+
+// 学习时长按钮
+document.querySelectorAll('.hour-btn').forEach(btn => {
+    btn.addEventListener('click', function(e) {
+        e.stopPropagation();
+        const hours = parseInt(this.dataset.hours);
+        const score = parseInt(this.dataset.score);
+
+        document.querySelectorAll('.hour-btn').forEach(b => b.classList.remove('active'));
+        this.classList.add('active');
+
+        data.records[today].studyHours = hours;
+        data.records[today].studyScore = score;
+
+        const studyItem = document.getElementById('studyItem');
+        studyItem.classList.add('checked');
+        studyItem.dataset.score = score;
+
+        saveData();
+        updateScores();
+    });
+});
+
+function updateScores() {
+    const record = data.records[today];
+    let todayScore = 0;
+    let todayPenalty = 0;
+    let todayOffset = 0;
+
+    // 计算今日得分（只算加分项）
+    for (let key in record.items) {
+        const score = record.items[key];
+        if (score > 0 && key !== '打扫全屋一次' && key !== '连续三天独立做饭+刷碗') {
+            todayScore += score;
+        }
+    }
+    todayScore += record.studyScore || 0;
+
+    // 计算惩罚分（独立累计）
+    for (let key in record.items) {
+        const score = record.items[key];
+        if (score < 0) {
+            todayPenalty += Math.abs(score); // 惩罚分记正数
+        }
+    }
+
+    // 计算抵消分
+    for (let key in record.items) {
+        const score = record.items[key];
+        if (key === '打扫全屋一次' || key === '连续三天独立做饭+刷碗') {
+            todayOffset += score;
+        }
+    }
+
+    // 重新计算总积分（只含加分项）
+    let total = 0;
+    for (let date in data.records) {
+        const r = data.records[date];
+        for (let key in r.items) {
+            const s = r.items[key];
+            if (s > 0 && key !== '打扫全屋一次' && key !== '连续三天独立做饭+刷碗') {
+                total += s;
+            }
+        }
+        total += r.studyScore || 0;
+    }
+    data.totalScore = total;
+
+    // 计算总惩罚分（独立累计，不抵消）
+    let totalPenalty = 0;
+    for (let date in data.records) {
+        const r = data.records[date];
+        for (let key in r.items) {
+            const s = r.items[key];
+            if (s < 0) totalPenalty += Math.abs(s);
+        }
+    }
+    data.penaltyScore = totalPenalty;
+
+    // 计算本周和本月（只含加分项）
+    let weekTotal = 0;
+    let monthTotal = 0;
+    for (let date in data.records) {
+        const r = data.records[date];
+        let dayScore = 0;
+        for (let key in r.items) {
+            const s = r.items[key];
+            if (s > 0 && key !== '打扫全屋一次' && key !== '连续三天独立做饭+刷碗') {
+                dayScore += s;
+            }
+        }
+        dayScore += r.studyScore || 0;
+
+        if (date >= currentWeek) weekTotal += dayScore;
+        if (date.startsWith(currentMonth)) monthTotal += dayScore;
+    }
+    data.weekScores[currentWeek] = weekTotal;
+    data.monthScores[currentMonth] = monthTotal;
+
+    // 更新显示
+    document.getElementById('todayScore').textContent = todayScore;
+    document.getElementById('weekScore').textContent = weekTotal;
+    document.getElementById('monthScore').textContent = monthTotal;
+    document.getElementById('totalScore').textContent = total;
+    document.getElementById('penaltyScore').textContent = totalPenalty;
+
+    saveData();
+}
+
+function saveData() {
+    localStorage.setItem('scoreData', JSON.stringify(data));
+}
+
+function loadData() {
+    const record = data.records[today] || { items: {}, studyHours: 0, studyScore: 0 };
+
+    document.querySelectorAll('.item').forEach(item => {
+        if (item.id === 'studyItem') {
+            if (record.studyHours) {
+                document.querySelectorAll('.hour-btn').forEach(btn => {
+                    if (parseInt(btn.dataset.hours) === record.studyHours) {
+                        btn.classList.add('active');
+                        item.classList.add('checked');
+                        item.dataset.score = record.studyScore;
+                    }
+                });
+            }
+            return;
+        }
+
+        const itemText = item.querySelector('.item-text').textContent;
+        if (record.items[itemText] !== undefined) {
+            item.classList.add('checked');
+        }
+    });
+
+    updateScores();
+}
+
+function resetDay() {
+    if (!confirm('确定要重置今日所有打卡吗？')) return;
+
+    data.records[today] = { items: {}, studyHours: 0, studyScore: 0 };
+
+    document.querySelectorAll('.item').forEach(item => {
+        item.classList.remove('checked');
+    });
+    document.querySelectorAll('.hour-btn').forEach(btn => {
+        btn.classList.remove('active');
+    });
+
+    saveData();
+    updateScores();
+}
+
+function copyReport() {
+    const record = data.records[today];
+    let report = `📅 ${today} 打卡汇报\n\n`;
+
+    report += `【每日加分】\n`;
+    const dailyItems = ['早上9:00前起床，10:00到办公室', '晚上12:30前睡觉', '三餐按时吃（晚餐<9:00pm）', '每日记录、复盘', '每日运动15-20分钟', '睡前泡脚、护肤、刷牙后不吃'];
+    dailyItems.forEach(text => {
+        const checked = record.items[text] !== undefined;
+        report += `${checked ? '✅' : '⬜'} ${text} ${checked ? '+' + record.items[text] : ''}\n`;
+    });
+    if (record.studyHours) {
+        report += `✅ 每日学习时长 ${record.studyHours}h +${record.studyScore}\n`;
+    } else {
+        report += `⬜ 每日学习时长\n`;
+    }
+
+    report += `\n【每周加分】\n`;
+    const weeklyItems = ['论文有进展（小论文一章/大论文2小节）', '数模、机器学习有进展（跑通/跑顺）', '连续5天学习', '连续5天早睡早起'];
+    weeklyItems.forEach(text => {
+        const checked = record.items[text] !== undefined;
+        report += `${checked ? '✅' : '⬜'} ${text} ${checked ? '+' + record.items[text] : ''}\n`;
+    });
+
+    report += `\n【惩罚扣分】\n`;
+    const penaltyItems = ['熬夜到1:30后', '工作日两天未学习', '一天刷手机>5h / 玩游戏>3h', '连续两天运动未达标', '吵架后摔东西、打人', '吵架后不说话>2min', '3次以上对方不耐烦/强调不注意'];
+    penaltyItems.forEach(text => {
+        const checked = record.items[text] !== undefined;
+        report += `${checked ? '❌' : '⬜'} ${text} ${checked ? record.items[text] : ''}\n`;
+    });
+
+    report += `\n【惩罚抵消】\n`;
+    const offsetItems = ['打扫全屋一次', '连续三天独立做饭+刷碗'];
+    offsetItems.forEach(text => {
+        const checked = record.items[text] !== undefined;
+        report += `${checked ? '✅' : '⬜'} ${text} ${checked ? '+' + record.items[text] : ''}\n`;
+    });
+
+    const todayScore = document.getElementById('todayScore').textContent;
+    const weekScore = document.getElementById('weekScore').textContent;
+    const monthScore = document.getElementById('monthScore').textContent;
+    const totalScore = document.getElementById('totalScore').textContent;
+    const penaltyScore = document.getElementById('penaltyScore').textContent;
+
+    report += `\n📊 当日得分：${todayScore}\n`;
+    report += `📊 本周累计：${weekScore}\n`;
+    report += `📊 本月累计：${monthScore}\n`;
+    report += `📊 总累计积分：${totalScore}\n`;
+    report += `⚠️ 累计惩罚分：${penaltyScore}\n`;
+
+    navigator.clipboard.writeText(report).then(() => {
+        alert('已复制到剪贴板！可以直接粘贴给我啦~');
+    }).catch(() => {
+        const textarea = document.createElement('textarea');
+        textarea.value = report;
+        document.body.appendChild(textarea);
+        textarea.select();
+        document.execCommand('copy');
+        document.body.removeChild(textarea);
+        alert('已复制到剪贴板！');
+    });
+}
+
+updateDate();
+loadData();
+</script>
+</body>
+</html>
